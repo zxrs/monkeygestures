@@ -12,12 +12,14 @@ port.onMessage.addListener(async (direction) => {
         switch (direction) {
             case "DR":
                 {
+                    // Close current tab
                     let tab = await getCurrentTab();
                     await browser.tabs.remove(tab.id);
                 }
                 break;
             case "L":
                 {
+                    // Go back
                     let tab = await getCurrentTab();
                     browser.tabs.executeScript(tab.id, {
                         code: 'history.back();',
@@ -27,6 +29,7 @@ port.onMessage.addListener(async (direction) => {
                 break;
             case "R":
                 {
+                    // Go forward.
                     let tab = await getCurrentTab();
                     browser.tabs.executeScript(tab.id, {
                         code: 'history.forward();',
@@ -51,6 +54,7 @@ port.onMessage.addListener(async (direction) => {
             });
             let current_tab = await getCurrentTab();
             let nextTab;
+            // +: Select left tab
             if (direction == "+") {
                 if (tabs.some(cur => cur.index < current_tab.index)) {
                     nextTab = tabs.reduce((acc, cur) =>
@@ -59,8 +63,8 @@ port.onMessage.addListener(async (direction) => {
                 } else {
                     nextTab = tabs.reduce((acc, cur) => acc.index > cur.index ? acc : cur);
                 }
-
             } else {
+            // -: Select right tab
                 if (tabs.some(cur => cur.index > current_tab.index)) {
                     nextTab = tabs.reduce((acc, cur) =>
                         (acc.index <= current_tab.index && cur.index > acc.index) || (cur.index > current_tab.index && cur.index < acc.index) ? cur : acc
