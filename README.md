@@ -13,5 +13,5 @@ More details on [Native manifests](https://developer.mozilla.org/en-US/docs/Mozi
 
 ## Issues
 
-- Go back and go forward does not work on "AMO" and "about:newtab".
+- Go back and go forward does not work on chrome page and "AMO".
 - Sometimes context menu shows for a moment.
