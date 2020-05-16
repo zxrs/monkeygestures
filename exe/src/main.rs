@@ -87,7 +87,7 @@ unsafe fn create_window(class_name: &[u16]) -> HWND {
     CreateWindowExW(
         0,
         class_name.as_ptr(),
-        encode("Hello, World!").as_ptr(),
+        encode("MonkeyGestures").as_ptr(),
         WS_OVERLAPPEDWINDOW,
         0,
         0,
