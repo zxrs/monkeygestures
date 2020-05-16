@@ -36,7 +36,7 @@ const GESTURE_END: &str = "!";
 
 unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRESULT {
     if code == HC_ACTION {
-        let mouse = *(lp as *const MSLLHOOKSTRUCT);
+        let mouse = &*(lp as *const MSLLHOOKSTRUCT);
         let hwnd = WindowFromPoint(mouse.pt);
         if !hwnd.is_null() {
             let mut buf = [0u8; 64];
