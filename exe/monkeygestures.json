@@ -1,6 +1,6 @@
 {
     "name": "MonkeyGestures",
-    "description": "Example host for native messaging",
+    "description": "Native messaging application for mouse gestures",
     "path": "/path/to/monkeygestures.exe",
     "type": "stdio",
     "allowed_extensions": [
