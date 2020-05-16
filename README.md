@@ -15,3 +15,4 @@ More details on [Native manifests](https://developer.mozilla.org/en-US/docs/Mozi
 
 - Go back and go forward does not work on chrome page and "AMO".
 - Sometimes context menu shows for a moment.
+- x86_64-pc-msvc toolchain does not work. You have to use i686-pc-msvc on 64bit platform.
