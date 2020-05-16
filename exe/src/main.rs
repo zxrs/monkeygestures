@@ -1,4 +1,4 @@
-use chrome_native_messaging::{event_loop, read_input, write_output};
+use chrome_native_messaging::event_loop;
 use serde_json::Value;
 use std::io;
 use std::mem;
