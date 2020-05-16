@@ -28,21 +28,6 @@ extern "C" {
     fn unhook() -> bool;
 }
 
-fn callback(value: Value) -> io::Result<()> {
-    if value.eq("suppressContextMenu") {
-        unsafe {
-            let hwnd = FindWindowW(
-                encode("MozillaDropShadowWindowClass").as_ptr(),
-                ptr::null_mut(),
-            );
-            if !hwnd.is_null() {
-                SendMessageW(hwnd, WM_CLOSE, 0, 0);
-            }
-        }
-    }
-    Ok(())
-}
-
 fn main() {
     unsafe {
         let class_name = encode("monkey_gestures_window_class");
@@ -114,4 +99,19 @@ unsafe extern "system" fn win_proc(hwnd: HWND, msg: UINT, wp: WPARAM, lp: LPARAM
         _ => return DefWindowProcW(hwnd, msg, wp, lp),
     };
     0
+}
+
+fn callback(value: Value) -> io::Result<()> {
+    if value.eq("suppressContextMenu") {
+        unsafe {
+            let hwnd = FindWindowW(
+                encode("MozillaDropShadowWindowClass").as_ptr(),
+                ptr::null_mut(),
+            );
+            if !hwnd.is_null() {
+                SendMessageW(hwnd, WM_CLOSE, 0, 0);
+            }
+        }
+    }
+    Ok(())
 }
