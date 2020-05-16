@@ -1,6 +1,4 @@
 #include <windows.h>
-#include <iostream>
-using namespace std;
 
 #pragma data_seg("SHARED")
 	extern "C" HHOOK gHook = NULL;
