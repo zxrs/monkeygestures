@@ -1,0 +1,3 @@
+[build]
+rustflags = ["-C", "link-arg=/SECTION:SHARED,RWS"]
+target-dir = "../exe/target"

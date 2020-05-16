@@ -1,0 +1,12 @@
+[package]
+name = "monkeygestures"
+version = "0.1.0"
+authors = ["benki"]
+edition = "2018"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
+monkeyhook = { path = "../dll" }
+chrome_native_messaging = "0.1"
+serde_json = "1.0"

@@ -1,0 +1,22 @@
+{
+    "manifest_version": 2,
+    "name": "MonkeyGestures",
+    "version": "0.1",
+    "description": "Adds a solid red border to all webpages matching mozilla.org.",
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "permissions": [
+        "<all_urls>",
+        "tabs",
+        "menus",
+        "nativeMessaging"
+    ],
+    "applications": {
+        "gecko": {
+            "id": "monkeygestures@benki.jp"
+        }
+    }
+}
