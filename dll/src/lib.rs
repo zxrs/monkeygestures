@@ -22,12 +22,17 @@ extern "C" {
     static mut gHook: HHOOK;
     static mut gLastX: LONG;
     static mut gLastY: LONG;
-    static mut gDirectionChain: [u8; 32];
 }
-
 static mut gDll: HINSTANCE = ptr::null_mut();
-
 const TOLERANCE: LONG = 10;
+const MOVE_UP: &str = "U";
+const MOVE_DOWN: &str = "D";
+const MOVE_LEFT: &str = "L";
+const MOVE_RIGHT: &str = "R";
+const WHEEL_UP: &str = "+";
+const WHEEL_DOWN: &str = "-";
+const GESTURE_START: &str = "?";
+const GESTURE_END: &str = "!";
 
 unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRESULT {
     if code == HC_ACTION {
@@ -43,7 +48,7 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                             // Start Gesture
                             gLastX = mouse.pt.x;
                             gLastY = mouse.pt.y;
-                            direction_chain_clear();
+                            send(GESTURE_START);
                         }
                         WM_MOUSEMOVE => {
                             // Progress Gesture
@@ -54,28 +59,18 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                                 let dy = (y - gLastY).abs();
 
                                 if dx > TOLERANCE || dy > TOLERANCE {
-                                    let direction = if dx > dy {
+                                    if dx > dy {
                                         if x < gLastX {
-                                            "L"
+                                            send(MOVE_LEFT);
                                         } else {
-                                            "R"
+                                            send(MOVE_RIGHT);
                                         }
                                     } else {
                                         if y < gLastY {
-                                            "U"
+                                            send(MOVE_UP);
                                         } else {
-                                            "D"
+                                            send(MOVE_DOWN);
                                         }
-                                    };
-                                    let last_direction = if direction_chain_is_empty() {
-                                        ""
-                                    } else {
-                                        let len = direction_chain_len();
-                                        let last = &gDirectionChain[len - 1..len];
-                                        str::from_utf8(last).unwrap_or("")
-                                    };
-                                    if direction.ne(last_direction) {
-                                        direction_chain_append(direction);
                                     }
                                     gLastX = x;
                                     gLastY = y;
@@ -84,26 +79,15 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                         }
                         WM_RBUTTONUP => {
                             // Stop Gesture
-                            if !direction_chain_is_empty() {
-                                if let Ok(direction) = direction_chain_str() {
-                                    if !direction.starts_with("W") {
-                                        let value = json!(direction);
-                                        write_output(io::stdout(), &value).ok();
-                                    }
-                                }
-                            }
+                            send(GESTURE_END);
                         }
                         WM_MOUSEWHEEL => {
                             // Wheel Gesture
                             if GetKeyState(VK_RBUTTON) < 0 {
                                 if GET_WHEEL_DELTA_WPARAM(mouse.mouseData as usize) > 0 {
-                                    direction_chain_assign("W+");
+                                    send(WHEEL_UP);
                                 } else {
-                                    direction_chain_assign("W-");
-                                }
-                                if let Ok(direction) = direction_chain_str() {
-                                    let value = json!(direction);
-                                    write_output(io::stdout(), &value).ok();
+                                    send(WHEEL_DOWN);
                                 }
                                 return 1;
                             }
@@ -146,34 +130,7 @@ pub unsafe extern "system" fn DllMain(h_instance: HINSTANCE, reason: DWORD, _: P
     return 1;
 }
 
-// Helper functions for direction chain
-unsafe fn direction_chain_str() -> Result<&'static str, str::Utf8Error> {
-    str::from_utf8(&gDirectionChain[..direction_chain_len()])
+fn send(direction: &str) {
+    let value = json!(direction);
+    write_output(io::stdout(), &value).ok();
 }
-
-unsafe fn direction_chain_clear() {
-    gDirectionChain.iter_mut().for_each(|c| *c = 0);
-}
-
-unsafe fn direction_chain_assign(direction: &str) {
-    direction_chain_clear();
-    direction_chain_append(direction);
-}
-
-unsafe fn direction_chain_append(direction: &str) {
-    let len = direction_chain_len();
-    if direction.len() + len > 32 {
-        return;
-    }
-    let dst_ptr = gDirectionChain.as_mut_ptr().offset(len as isize);
-    ptr::copy_nonoverlapping(direction.as_ptr(), dst_ptr, direction.len());
-}
-
-unsafe fn direction_chain_len() -> usize {
-    gDirectionChain.iter().filter(|&c| c != &0).count()
-}
-
-unsafe fn direction_chain_is_empty() -> bool {
-    direction_chain_len() == 0
-}
-

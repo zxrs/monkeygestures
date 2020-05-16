@@ -1,10 +1,10 @@
 use chrome_native_messaging::{event_loop, read_input, write_output};
 use serde_json::Value;
 use std::io;
-use std::thread;
 use std::mem;
 use std::ptr;
 use std::str;
+use std::thread;
 use winapi::{
     shared::{
         minwindef::{LPARAM, LRESULT, UINT, WPARAM},
@@ -13,11 +13,11 @@ use winapi::{
     um::{
         wingdi::{GetStockObject, WHITE_BRUSH},
         winuser::{
-            CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-            LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassW, ShowWindow, TranslateMessage,
-            UpdateWindow, CS_HREDRAW, CS_VREDRAW, IDC_ARROW, IDI_APPLICATION, MSG, SW_NORMAL,
-            WM_CLOSE, WM_CREATE, WM_DESTROY, WNDCLASSW, WS_OVERLAPPEDWINDOW, FindWindowW,
-            SendMessageW,
+            CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, FindWindowW,
+            GetMessageW, LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassW, SendMessageW,
+            ShowWindow, TranslateMessage, UpdateWindow, CS_HREDRAW, CS_VREDRAW, IDC_ARROW,
+            IDI_APPLICATION, MSG, SW_NORMAL, WM_CLOSE, WM_CREATE, WM_DESTROY, WNDCLASSW,
+            WS_OVERLAPPEDWINDOW,
         },
     },
 };
@@ -29,10 +29,12 @@ extern "C" {
 }
 
 fn callback(value: Value) -> io::Result<()> {
-    write_output(io::stdout(), &value).ok();
     if value.eq("suppressContextMenu") {
         unsafe {
-            let hwnd = FindWindowW(encode("MozillaDropShadowWindowClass").as_ptr(), ptr::null_mut());
+            let hwnd = FindWindowW(
+                encode("MozillaDropShadowWindowClass").as_ptr(),
+                ptr::null_mut(),
+            );
             if !hwnd.is_null() {
                 SendMessageW(hwnd, WM_CLOSE, 0, 0);
             }
@@ -43,7 +45,7 @@ fn callback(value: Value) -> io::Result<()> {
 
 fn main() {
     unsafe {
-        let class_name = encode("my_window_class_name");
+        let class_name = encode("monkey_gestures_window_class");
         if !register_wndclass(&class_name) {
             return;
         }
@@ -98,12 +100,7 @@ unsafe fn create_window(class_name: &[u16]) -> HWND {
     )
 }
 
-unsafe extern "system" fn win_proc(
-    hwnd: HWND,
-    msg: UINT,
-    wp: WPARAM,
-    lp: LPARAM,
-) -> LRESULT {
+unsafe extern "system" fn win_proc(hwnd: HWND, msg: UINT, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match msg {
         WM_CREATE => {
             thread::spawn(|| event_loop(callback));
@@ -113,15 +110,6 @@ unsafe extern "system" fn win_proc(
             unhook();
             DestroyWindow(hwnd);
         }
-        // WM_COPYDATA => {
-        //     let data = &*(lp as *const COPYDATASTRUCT);
-        //     let len = data.cbData as usize;
-        //     let slice = slice::from_raw_parts(data.dwData as *const u8, len);
-        //     if let Ok(direction) = str::from_utf8(&slice[..len]) {
-        //         let value = json!(direction);
-        //         write_output(io::stdout(), &value).ok();
-        //     }
-        // }
         WM_DESTROY => PostQuitMessage(0),
         _ => return DefWindowProcW(hwnd, msg, wp, lp),
     };

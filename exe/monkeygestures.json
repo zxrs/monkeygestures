@@ -1,0 +1,9 @@
+{
+    "name": "MonkeyGestures",
+    "description": "Example host for native messaging",
+    "path": "/path/to/monkeygestures.exe",
+    "type": "stdio",
+    "allowed_extensions": [
+        "monkeygestures@benki.jp"
+    ]
+}
