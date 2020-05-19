@@ -1,7 +1,7 @@
 #![allow(non_upper_case_globals)]
 
 use chrome_native_messaging::write_output;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::io;
 use std::ptr;
 use std::str;
@@ -24,15 +24,37 @@ extern "C" {
     static mut gLastY: LONG;
 }
 static mut gDll: HINSTANCE = ptr::null_mut();
+
+#[derive(Debug)]
+enum Gesture {
+    Up,
+    Down,
+    Left,
+    Right,
+    WheelUp,
+    WheelDown,
+    Start,
+    Stop,
+}
+
+impl Gesture {
+    fn to_value(&self) -> Value {
+        use Gesture::*;
+        let v = match self {
+            Up => "U",
+            Down => "D",
+            Left => "L",
+            Right => "R",
+            WheelUp => "+",
+            WheelDown => "-",
+            Start => "?",
+            Stop => "!",
+        };
+        json!(v)
+    }
+}
+
 const TOLERANCE: LONG = 10;
-const MOVE_UP: &str = "U";
-const MOVE_DOWN: &str = "D";
-const MOVE_LEFT: &str = "L";
-const MOVE_RIGHT: &str = "R";
-const WHEEL_UP: &str = "+";
-const WHEEL_DOWN: &str = "-";
-const GESTURE_START: &str = "?";
-const GESTURE_END: &str = "!";
 
 unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRESULT {
     if code == HC_ACTION {
@@ -48,7 +70,7 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                             // Start Gesture
                             gLastX = mouse.pt.x;
                             gLastY = mouse.pt.y;
-                            send(GESTURE_START);
+                            send(Gesture::Start);
                         }
                         WM_MOUSEMOVE => {
                             // Progress Gesture
@@ -61,15 +83,15 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                                 if dx > TOLERANCE || dy > TOLERANCE {
                                     if dx > dy {
                                         if x < gLastX {
-                                            send(MOVE_LEFT);
+                                            send(Gesture::Left);
                                         } else {
-                                            send(MOVE_RIGHT);
+                                            send(Gesture::Right);
                                         }
                                     } else {
                                         if y < gLastY {
-                                            send(MOVE_UP);
+                                            send(Gesture::Up);
                                         } else {
-                                            send(MOVE_DOWN);
+                                            send(Gesture::Down);
                                         }
                                     }
                                     gLastX = x;
@@ -79,15 +101,15 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                         }
                         WM_RBUTTONUP => {
                             // Stop Gesture
-                            send(GESTURE_END);
+                            send(Gesture::Stop);
                         }
                         WM_MOUSEWHEEL => {
                             // Wheel Gesture
                             if GetKeyState(VK_RBUTTON) < 0 {
                                 if GET_WHEEL_DELTA_WPARAM(mouse.mouseData as usize) > 0 {
-                                    send(WHEEL_UP);
+                                    send(Gesture::WheelUp);
                                 } else {
-                                    send(WHEEL_DOWN);
+                                    send(Gesture::WheelDown);
                                 }
                                 return 1;
                             }
@@ -130,7 +152,7 @@ pub unsafe extern "system" fn DllMain(h_instance: HINSTANCE, reason: DWORD, _: P
     return 1;
 }
 
-fn send(direction: &str) {
-    let value = json!(direction);
+fn send(gesture: Gesture) {
+    let value = gesture.to_value();
     write_output(io::stdout(), &value).ok();
 }
