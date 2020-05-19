@@ -14,9 +14,10 @@ use winapi::{
         wingdi::{GetStockObject, WHITE_BRUSH},
         winuser::{
             CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, FindWindowW,
-            GetMessageW, LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassW, SendMessageW,
-            ShowWindow, TranslateMessage, UpdateWindow, CS_HREDRAW, CS_VREDRAW, IDC_ARROW,
-            IDI_APPLICATION, MSG, SW_NORMAL, WM_CLOSE, WM_CREATE, WM_DESTROY, WNDCLASSW,
+            GetMessageW, LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassW, SendInput,
+            SendMessageW, ShowWindow, TranslateMessage, UpdateWindow, CS_HREDRAW, CS_VREDRAW,
+            IDC_ARROW, IDI_APPLICATION, INPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP, MSG, SW_NORMAL,
+            VK_LEFT, VK_LMENU, VK_RIGHT, WM_CLOSE, WM_CREATE, WM_DESTROY, WNDCLASSW,
             WS_OVERLAPPEDWINDOW,
         },
     },
@@ -102,16 +103,60 @@ unsafe extern "system" fn win_proc(hwnd: HWND, msg: UINT, wp: WPARAM, lp: LPARAM
 }
 
 fn callback(value: Value) -> io::Result<()> {
-    if value.eq("suppressContextMenu") {
-        unsafe {
-            let hwnd = FindWindowW(
-                encode("MozillaDropShadowWindowClass").as_ptr(),
-                ptr::null_mut(),
-            );
-            if !hwnd.is_null() {
-                SendMessageW(hwnd, WM_CLOSE, 0, 0);
-            }
-        }
+    match value.as_str() {
+        Some("goBack") => unsafe {
+            // Alt + <-
+            key_down(VK_LMENU);
+            key_enter(VK_LEFT);
+            key_up(VK_LMENU);
+        },
+        Some("goForward") => unsafe {
+            // Alt + ->
+            key_down(VK_LMENU);
+            key_enter(VK_RIGHT);
+            key_up(VK_LMENU);
+        },
+        Some("suppressContextMenu") => unsafe {
+            let hwnd = get_window("MozillaDropShadowWindowClass")?;
+            SendMessageW(hwnd, WM_CLOSE, 0, 0);
+        },
+        _ => (),
     }
     Ok(())
+}
+
+unsafe fn get_window(class_name: &str) -> io::Result<HWND> {
+    let class_name_ = encode(class_name);
+    let hwnd = FindWindowW(class_name_.as_ptr(), ptr::null_mut());
+    if hwnd.is_null() {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!("{} HWND not found.", &class_name),
+        ));
+    }
+    Ok(hwnd)
+}
+
+unsafe fn create_input(key_code: i32, flags: u32) -> INPUT {
+    let mut input = mem::zeroed::<INPUT>();
+    input.type_ = INPUT_KEYBOARD;
+    let mut ki = input.u.ki_mut();
+    ki.wVk = key_code as u16;
+    ki.dwFlags = flags;
+    input
+}
+
+unsafe fn key_down(key_code: i32) {
+    let mut input = create_input(key_code, 0);
+    SendInput(1, &mut input, mem::size_of::<INPUT>() as i32);
+}
+
+unsafe fn key_up(key_code: i32) {
+    let mut input = create_input(key_code, KEYEVENTF_KEYUP);
+    SendInput(1, &mut input, mem::size_of::<INPUT>() as i32);
+}
+
+unsafe fn key_enter(key_code: i32) {
+    key_down(key_code);
+    key_up(key_code);
 }

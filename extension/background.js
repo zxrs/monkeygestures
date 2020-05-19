@@ -14,27 +14,35 @@ port.onMessage.addListener(async (direction) => {
                 {
                     // Close current tab
                     let tab = await getCurrentTab();
-                    await browser.tabs.remove(tab.id);
+                    browser.tabs.remove(tab.id);
                 }
                 break;
             case "L":
                 {
                     // Go back
-                    let tab = await getCurrentTab();
-                    browser.tabs.executeScript(tab.id, {
-                        code: 'history.back();',
-                        runAt: 'document_start'
-                    });
+
+                    // let tab = await getCurrentTab();
+                    // browser.tabs.executeScript(tab.id, {
+                    //     code: 'history.back();',
+                    //     runAt: 'document_start'
+                    // });
+
+                    // Note:
+                    // executeScript does not work on some chrome pages
+                    // such as "Option", "about:newtab".
+                    // So we need to emulate "Alt + <-" keyboard input.
+                    port.postMessage("goBack");
                 }
                 break;
             case "R":
                 {
                     // Go forward.
-                    let tab = await getCurrentTab();
-                    browser.tabs.executeScript(tab.id, {
-                        code: 'history.forward();',
-                        runAt: 'document_start'
-                    });
+                    // let tab = await getCurrentTab();
+                    // browser.tabs.executeScript(tab.id, {
+                    //     code: 'history.forward();',
+                    //     runAt: 'document_start'
+                    // });
+                    port.postMessage("goForward");
                 }
                 break;
         }
