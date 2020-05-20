@@ -52,6 +52,11 @@ impl Gesture {
         };
         json!(v)
     }
+
+    fn send(&self) {
+        let value = self.to_value();
+        write_output(io::stdout(), &value).ok();
+    }
 }
 
 const TOLERANCE: LONG = 10;
@@ -70,7 +75,7 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                             // Start Gesture
                             gLastX = mouse.pt.x;
                             gLastY = mouse.pt.y;
-                            send(Gesture::Start);
+                            Gesture::Start.send();
                         }
                         WM_MOUSEMOVE => {
                             // Progress Gesture
@@ -83,15 +88,15 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                                 if dx > TOLERANCE || dy > TOLERANCE {
                                     if dx > dy {
                                         if x < gLastX {
-                                            send(Gesture::Left);
+                                            Gesture::Left.send();
                                         } else {
-                                            send(Gesture::Right);
+                                            Gesture::Right.send();
                                         }
                                     } else {
                                         if y < gLastY {
-                                            send(Gesture::Up);
+                                            Gesture::Up.send();
                                         } else {
-                                            send(Gesture::Down);
+                                            Gesture::Down.send();
                                         }
                                     }
                                     gLastX = x;
@@ -101,15 +106,15 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                         }
                         WM_RBUTTONUP => {
                             // Stop Gesture
-                            send(Gesture::Stop);
+                            Gesture::Stop.send();
                         }
                         WM_MOUSEWHEEL => {
                             // Wheel Gesture
                             if GetKeyState(VK_RBUTTON) < 0 {
                                 if GET_WHEEL_DELTA_WPARAM(mouse.mouseData as usize) > 0 {
-                                    send(Gesture::WheelUp);
+                                    Gesture::WheelUp.send();
                                 } else {
-                                    send(Gesture::WheelDown);
+                                    Gesture::WheelDown.send();
                                 }
                                 return 1;
                             }
@@ -150,9 +155,4 @@ pub unsafe extern "system" fn DllMain(h_instance: HINSTANCE, reason: DWORD, _: P
         gDll = h_instance;
     }
     return 1;
-}
-
-fn send(gesture: Gesture) {
-    let value = gesture.to_value();
-    write_output(io::stdout(), &value).ok();
 }
