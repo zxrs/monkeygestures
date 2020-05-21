@@ -12,8 +12,8 @@ use winapi::{
     um::winnt::{DLL_PROCESS_ATTACH, LONG, PVOID},
     um::winuser::{
         CallNextHookEx, GetClassNameA, GetKeyState, SetWindowsHookExW, UnhookWindowsHookEx,
-        WindowFromPoint, GET_WHEEL_DELTA_WPARAM, HC_ACTION, MSLLHOOKSTRUCT, VK_RBUTTON,
-        WH_MOUSE_LL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP,
+        WindowFromPoint, GET_WHEEL_DELTA_WPARAM, HC_ACTION, MSLLHOOKSTRUCT, VK_LBUTTON, VK_RBUTTON,
+        WH_MOUSE_LL, WM_LBUTTONDOWN, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP,
     },
 };
 
@@ -27,28 +27,32 @@ static mut gDll: HINSTANCE = ptr::null_mut();
 
 #[derive(Debug)]
 enum Gesture {
+    Start,
+    Stop,
     Up,
     Down,
     Left,
     Right,
     WheelUp,
     WheelDown,
-    Start,
-    Stop,
+    RockerLeft,
+    RockerRight,
 }
 
 impl Gesture {
     fn to_value(&self) -> Value {
         use Gesture::*;
         let v = match self {
+            Start => "?",
+            Stop => "!",
             Up => "U",
             Down => "D",
             Left => "L",
             Right => "R",
             WheelUp => "+",
             WheelDown => "-",
-            Start => "?",
-            Stop => "!",
+            RockerLeft => "<",
+            RockerRight => ">",
         };
         json!(v)
     }
@@ -76,6 +80,10 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                             gLastX = mouse.pt.x;
                             gLastY = mouse.pt.y;
                             Gesture::Start.send();
+                            // Rocker Gesture
+                            if GetKeyState(VK_LBUTTON) < 0 {
+                                Gesture::RockerRight.send();
+                            }
                         }
                         WM_MOUSEMOVE => {
                             // Progress Gesture
@@ -117,6 +125,12 @@ unsafe extern "system" fn hook_proc(code: c_int, wp: WPARAM, lp: LPARAM) -> LRES
                                     Gesture::WheelDown.send();
                                 }
                                 return 1;
+                            }
+                        }
+                        WM_LBUTTONDOWN => {
+                            // Rocker Gesture
+                            if GetKeyState(VK_RBUTTON) < 0 {
+                                Gesture::RockerLeft.send();
                             }
                         }
                         _ => (),

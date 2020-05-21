@@ -72,7 +72,7 @@ port.onMessage.addListener(async (direction) => {
                     nextTab = tabs.reduce((acc, cur) => acc.index > cur.index ? acc : cur);
                 }
             } else {
-            // -: Select right tab
+                // -: Select right tab
                 if (tabs.some(cur => cur.index > current_tab.index)) {
                     nextTab = tabs.reduce((acc, cur) =>
                         (acc.index <= current_tab.index && cur.index > acc.index) || (cur.index > current_tab.index && cur.index < acc.index) ? cur : acc
@@ -84,6 +84,13 @@ port.onMessage.addListener(async (direction) => {
             if (nextTab) {
                 browser.tabs.update(nextTab.id, { active: true });
             }
+        }
+        // Rocker Gesture
+        if (direction == "<") {
+            port.postMessage("goBack");
+        }
+        if (direction == ">") {
+            port.postMessage("goForward");
         }
     }
 });
